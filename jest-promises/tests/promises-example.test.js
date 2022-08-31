@@ -1,23 +1,12 @@
-function wrap(cb) {
-  return () => setImmediate(() => new Promise(() => {
-    cb();
-  }));
-}
 
-function lotsAndLotsOfPromises(assertion) {
-  let wrappedUp = assertion;
+// afterEach(() => new Promise(res => setTimeout(res, 1000)));
 
-  for (let i = 0; i < 10; i++) {
-    wrappedUp = wrap(wrappedUp);
-  }
+test('test with done', (done) => {
+  expect(1).toBe(1);
+  debugger;
+  done();
+});
 
-  return wrappedUp;
-}
-
-afterEach(() => new Promise(res => setTimeout(res, 1000)));
-
-test('assertion fails even though the test passes', () => {
-  setTimeout(() => {
-    expect(1).toBe('andy');
-  }, 250)
+test('test without done', () => {
+  expect(1).toBe(1);
 });
