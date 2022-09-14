@@ -1,78 +1,53 @@
-import fs from "fs";
-import path from "path";
-import { DAG } from "./DAG";
+import { inspect } from "util";
 
-const dependencies = new DAG();
-// const dependencies = new DepGraph();
-const exportsCache = new Map<string, unknown>();
+require("./a");
 
-// filename must be resolved already
-const uncachedRequire = (filename) => {
-  const exports = {};
-  const module = { exports };
-  const source = fs.readFileSync(filename);
+function printChildren(entry) {
+  return {
+    id: entry.id,
+    children: entry.children.map(printChildren),
+  };
+}
+// console.log(
+//   inspect(
+//     printChildren(require.cache[require.resolve("./a")]),
+//     false,
+//     null,
+//     true
+//   )
+// );
 
-  dependencies.addNode(filename);
+function evictFile(rootRequiredFile: string, filename: string) {
+  const fullPath = require.resolve(filename);
 
-  // https://github.com/nodejs/node/blob/main/lib/internal/modules/cjs/loader.js#L212-L215
-  new Function(
-    "exports",
-    "require",
-    "module",
-    "__filename",
-    "__dirname",
-    source as unknown as string
-  )(
-    exports,
-    (childDependency: string) => {
-      const resolvedChild = require.resolve(childDependency);
-      if (resolvedChild.indexOf("/node_modules/") !== -1) {
-        return require(resolvedChild);
-      }
+  const result = new Set<string>();
+  const visited = new Set<string>();
 
-      dependencies.addNode(resolvedChild);
-      dependencies.addDependency(filename, resolvedChild);
+  const dfs = (
+    current: NodeModule,
+    dependencyToEvict: string,
+    currentPath: string[]
+  ) => {
+    if (current.id === dependencyToEvict) {
+      currentPath.forEach((x) => result.add(x));
+    }
 
-      // if we've required this child before, serve the cached value
-      if (exportsCache.has(resolvedChild)) {
-        return exportsCache.get(resolvedChild);
-      }
+    if (visited.has(current.id)) {
+      return;
+    }
 
-      return uncachedRequire(resolvedChild);
-    },
-    module,
-    filename,
-    path.dirname(filename)
-  );
+    const newPath = currentPath.concat(current.id);
+    current.children.forEach((child) => dfs(child, dependencyToEvict, newPath));
+  };
 
-  // make sure we cache things, otherwise we'll be re-evaluating every file every time and not getting shared values
-  exportsCache.set(filename, module.exports);
+  dfs(require.cache[require.resolve(rootRequiredFile)], fullPath, []);
 
-  return module.exports;
-};
+  result.add(fullPath);
 
-// recursively walk looking for any dependency paths
-function clearCacheItem(fileToRemove) {
-  const dependents = dependencies.dependents(fileToRemove);
-
-  console.log("dependents", dependents);
-  dependents.forEach((filename) => {
-    dependencies.removeNode(filename);
-    exportsCache.delete(filename);
-  });
+  [...result.values()].forEach((entry) => delete require.cache[entry]);
 }
 
-const a = uncachedRequire(require.resolve("./a.js"));
+evictFile("./a", "./c");
+console.log("---evicted---");
 
-console.log("result", a);
-
-// console.log(dependencies);
-
-clearCacheItem(require.resolve("./c"));
-console.log("############# cleared ##############");
-
-const aNew = uncachedRequire(require.resolve("./a.js"));
-
-console.log(aNew);
-
-// console.log(dependencies);
+require("./a");
