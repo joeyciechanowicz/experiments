@@ -4,12 +4,18 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "patch-apollo": "cp patched-entityStore.js node_modules/@apollo/client/cache/inmemory/entityStore.js "
+    "patch-apollo": "cp patched-entityStore.js node_modules/@apollo/client/cache/inmemory/entityStore.js",
+    "start": "ts-node --swc example.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@apollo/client": "^3.6.9"
+    "@apollo/client": "^3.6.9",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@swc/core": "^1.2.245",
+    "ts-node": "^10.9.1"
   }
 }

@@ -397,6 +397,7 @@ var Layer = (function (_super) {
         return new Layer(layerId, this, replay, this.group);
     };
     Layer.prototype.removeLayer = function (layerId) {
+        console.log(`Removing layer ${layerId} from ${this.id}`);
         var _this = this;
         var parent = this.parent.removeLayer(layerId);
         if (layerId === this.id) {
