@@ -1,53 +1,63 @@
-import { inspect } from "util";
-
 require("./a");
 
-function printChildren(entry) {
-  return {
-    id: entry.id,
-    children: entry.children.map(printChildren),
+type ParentMap = Map<string, Set<string>>;
+const computeParentMap = (): ParentMap => {
+  const out: ParentMap = new Map();
+  Object.values(require.cache)
+    .filter((x) => x.filename.indexOf("/node_modules/") === -1)
+    .forEach(({ filename: parent, children }) => {
+      children
+        .filter((x) => x.filename.indexOf("/node_modules/") === -1)
+        .forEach(({ filename: child }) => {
+          const parents = out.get(child);
+          if (parents) {
+            parents.add(parent);
+          } else {
+            out.set(child, new Set([parent]));
+          }
+        });
+    });
+  return out;
+};
+
+const evictFromCache = (file: string, parentMap: ParentMap) => {
+  const resolved = require.resolve(file);
+
+  parentMap.get(resolved)?.forEach((parent) => {
+    evictFromCache(parent, parentMap);
+  });
+
+  // don't delete ourselves
+  if (file === __filename) {
+    return;
+  }
+
+  console.log(`evicting ${resolved}`);
+  delete require.cache[resolved];
+};
+
+// evictFile("./a", "./c");
+// console.log("---evicted---");
+
+const parentMap = computeParentMap();
+console.log(parentMap);
+evictFromCache("./c", parentMap);
+
+const debounceBatch = (cb, amount) => {
+  let timeout;
+  let buffer = [];
+
+  return (...args) => {
+    clearTimeout(timeout);
+    buffer.push(args);
+
+    setTimeout(() => {
+      cb(buffer);
+      buffer = [];
+    }, amount);
   };
-}
-// console.log(
-//   inspect(
-//     printChildren(require.cache[require.resolve("./a")]),
-//     false,
-//     null,
-//     true
-//   )
-// );
+};
 
-function evictFile(rootRequiredFile: string, filename: string) {
-  const fullPath = require.resolve(filename);
-
-  const result = new Set<string>();
-  const visited = new Set<string>();
-
-  const dfs = (
-    current: NodeModule,
-    dependencyToEvict: string,
-    currentPath: string[]
-  ) => {
-    if (current.id === dependencyToEvict) {
-      currentPath.forEach((x) => result.add(x));
-    }
-
-    if (visited.has(current.id)) {
-      return;
-    }
-
-    const newPath = currentPath.concat(current.id);
-    current.children.forEach((child) => dfs(child, dependencyToEvict, newPath));
-  };
-
-  dfs(require.cache[require.resolve(rootRequiredFile)], fullPath, []);
-
-  result.add(fullPath);
-
-  [...result.values()].forEach((entry) => delete require.cache[entry]);
-}
-
-evictFile("./a", "./c");
-console.log("---evicted---");
+console.log("----------evicted----------");
 
 require("./a");
