@@ -1,18 +1,16 @@
-type Key = string | number;
-
-interface LinkedListNode<T> {
-  value: T;
-  key: Key;
-  next?: LinkedListNode<T>;
+interface LinkedListNode<K, V> {
+  value: V;
+  key: K;
+  next?: LinkedListNode<K, V>;
 }
 
-export class LinkedList<T> {
-  head?: LinkedListNode<T>;
-  tail?: LinkedListNode<T>;
+export class LinkedList<K, V> {
+  head?: LinkedListNode<K, V>;
+  tail?: LinkedListNode<K, V>;
 
   constructor() {}
 
-  append(key: Key, value: T): LinkedList<T> {
+  append(key: K, value: V): LinkedList<K, V> {
     if (!this.head && !this.tail) {
       this.head = {
         key,
@@ -31,7 +29,7 @@ export class LinkedList<T> {
     return this;
   }
 
-  prepend(key: Key, value: T): LinkedList<T> {
+  prepend(key: K, value: V): LinkedList<K, V> {
     if (!this.head && !this.tail) {
       this.head = {
         key,
@@ -50,19 +48,19 @@ export class LinkedList<T> {
     return this;
   }
 
-  remove(key: Key): LinkedList<T> {
+  remove(key: K): boolean {
     if (!this.head) {
-      return this;
+      return false;
     }
 
-    let curr: LinkedListNode<T> | undefined = this.head;
+    let curr: LinkedListNode<K, V> | undefined = this.head;
     if (curr.key === key) {
       this.head = curr.next;
       if (curr.next === undefined) {
         this.tail = undefined;
       }
 
-      return this;
+      return true;
     }
 
     while (curr !== undefined) {
@@ -74,21 +72,21 @@ export class LinkedList<T> {
           curr.next = curr.next.next;
         }
 
-        return this;
+        return true;
       }
 
       curr = curr.next;
     }
 
-    return this;
+    return false;
   }
 
-  contains(key: Key): boolean {
+  contains(key: K): boolean {
     return this.get(key) !== undefined;
   }
 
-  get(key: Key): T | undefined {
-    let curr: LinkedListNode<T> | undefined = this.head;
+  get(key: K): V | undefined {
+    let curr: LinkedListNode<K, V> | undefined = this.head;
     while (curr) {
       if (curr.key === key) {
         return curr.value;
@@ -100,10 +98,10 @@ export class LinkedList<T> {
     return undefined;
   }
 
-  values(): T[] {
-    const items: T[] = [];
+  values(): V[] {
+    const items: V[] = [];
 
-    let curr: LinkedListNode<T> | undefined = this.head;
+    let curr: LinkedListNode<K, V> | undefined = this.head;
     while (curr) {
       items.push(curr.value);
 
@@ -113,10 +111,10 @@ export class LinkedList<T> {
     return items;
   }
 
-  keys(): Key[] {
-    const items: Key[] = [];
+  keys(): K[] {
+    const items: K[] = [];
 
-    let curr: LinkedListNode<T> | undefined = this.head;
+    let curr: LinkedListNode<K, V> | undefined = this.head;
     while (curr) {
       items.push(curr.key);
 
@@ -126,10 +124,10 @@ export class LinkedList<T> {
     return items;
   }
 
-  entries(): [Key, T][] {
-    const entries: [Key, T][] = [];
+  entries(): [K, V][] {
+    const entries: [K, V][] = [];
 
-    let curr: LinkedListNode<T> | undefined = this.head;
+    let curr: LinkedListNode<K, V> | undefined = this.head;
     while (curr) {
       entries.push([curr.key, curr.value]);
 
