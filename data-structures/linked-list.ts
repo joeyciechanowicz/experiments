@@ -1,5 +1,8 @@
+type Key = string | number;
+
 interface LinkedListNode<T> {
   value: T;
+  key: Key;
   next?: LinkedListNode<T>;
 }
 
@@ -9,16 +12,18 @@ export class LinkedList<T> {
 
   constructor() {}
 
-  append(item: T): LinkedList<T> {
+  append(key: Key, value: T): LinkedList<T> {
     if (!this.head && !this.tail) {
       this.head = {
-        value: item,
+        key,
+        value,
         next: undefined,
       };
       this.tail = this.head;
     } else {
       this.tail!.next = {
-        value: item,
+        key,
+        value,
         next: undefined,
       };
       this.tail = this.tail!.next;
@@ -26,16 +31,18 @@ export class LinkedList<T> {
     return this;
   }
 
-  prepend(item: T): LinkedList<T> {
+  prepend(key: Key, value: T): LinkedList<T> {
     if (!this.head && !this.tail) {
       this.head = {
-        value: item,
+        key,
+        value,
         next: undefined,
       };
       this.tail = this.head;
     } else {
       const newHead = {
-        value: item,
+        key,
+        value,
         next: this.head,
       };
       this.head = newHead;
@@ -43,25 +50,23 @@ export class LinkedList<T> {
     return this;
   }
 
-  remove(item: T): LinkedList<T> {
+  remove(key: Key): LinkedList<T> {
     if (!this.head) {
       return this;
     }
 
-    let curr = this.head;
-
-    if (curr.value === item) {
+    let curr: LinkedListNode<T> | undefined = this.head;
+    if (curr.key === key) {
       this.head = curr.next;
-
-      // sort out tail
       if (curr.next === undefined) {
         this.tail = undefined;
       }
+
       return this;
     }
 
-    do {
-      if (curr.next && curr.next.value === item) {
+    while (curr !== undefined) {
+      if (curr.next && curr.next.key === key) {
         if (this.tail === curr.next) {
           curr.next = undefined;
           this.tail = curr;
@@ -72,45 +77,65 @@ export class LinkedList<T> {
         return this;
       }
 
-      if (curr.next) {
-        curr = curr.next;
-      } else {
-        break;
-      }
-    } while (curr !== undefined);
+      curr = curr.next;
+    }
+
     return this;
   }
 
-  contains(item: T): boolean {
-    if (!this.head) {
-      return false;
-    }
+  contains(key: Key): boolean {
+    return this.get(key) !== undefined;
+  }
 
+  get(key: Key): T | undefined {
     let curr: LinkedListNode<T> | undefined = this.head;
-    do {
-      if (curr.value === item) {
-        return true;
+    while (curr) {
+      if (curr.key === key) {
+        return curr.value;
       }
 
       curr = curr.next;
-    } while (curr !== undefined);
-    return false;
-  }
-
-  toArray(): T[] {
-    const items: T[] = [];
-
-    if (!this.head) {
-      return [];
     }
 
+    return undefined;
+  }
+
+  values(): T[] {
+    const items: T[] = [];
+
     let curr: LinkedListNode<T> | undefined = this.head;
-    do {
+    while (curr) {
       items.push(curr.value);
 
       curr = curr.next;
-    } while (curr !== undefined);
+    }
 
     return items;
+  }
+
+  keys(): Key[] {
+    const items: Key[] = [];
+
+    let curr: LinkedListNode<T> | undefined = this.head;
+    while (curr) {
+      items.push(curr.key);
+
+      curr = curr.next;
+    }
+
+    return items;
+  }
+
+  entries(): [Key, T][] {
+    const entries: [Key, T][] = [];
+
+    let curr: LinkedListNode<T> | undefined = this.head;
+    while (curr) {
+      entries.push([curr.key, curr.value]);
+
+      curr = curr.next;
+    }
+
+    return entries;
   }
 }
