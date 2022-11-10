@@ -12,7 +12,8 @@
   "license": "ISC",
   "dependencies": {
     "@apollo/client": "^3.6.9",
-    "react": "^18.2.0"
+    "react": "^18.2.0",
+    "zen-observable": "^0.9.0"
   },
   "devDependencies": {
     "@swc/core": "^1.2.245",
