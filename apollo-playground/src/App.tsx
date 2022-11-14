@@ -1,102 +1,36 @@
-/*** SCHEMA ***/
-import {
-  GraphQLSchema,
-  GraphQLObjectType,
-  GraphQLID,
-  GraphQLString,
-  GraphQLList,
-  GraphQLInt,
-} from "graphql";
-
-const PersonType = new GraphQLObjectType({
-  name: "Person",
-  fields: {
-    id: { type: GraphQLID },
-    age: { type: GraphQLInt },
-    clientAge: { type: GraphQLInt },
-  },
-});
-
-const personData = { id: 1, age: 0, clientAge: 0, __typename: "Person" };
-
-const QueryType = new GraphQLObjectType({
-  name: "Query",
-  fields: {
-    person: {
-      type: PersonType,
-      resolve: () => personData,
-    },
-  },
-});
-
-const MutationType = new GraphQLObjectType({
-  name: "Mutation",
-  fields: {
-    person: {
-      type: PersonType,
-      args: {
-        age: { type: GraphQLInt },
-      },
-      resolve: function (_, { age }) {
-        personData.age = age;
-        return personData;
-      },
-    },
-  },
-});
-
-const schema = new GraphQLSchema({ query: QueryType, mutation: MutationType });
-
-/*** LINK ***/
-import { graphql, print } from "graphql";
-import { ApolloLink, Observable, from } from "@apollo/client";
-function delay(wait) {
-  return new Promise((resolve) => setTimeout(resolve, wait));
-}
-
-const terminatingLink = new ApolloLink((operation) => {
-  return new Observable(async (observer) => {
-    const { query, operationName, variables } = operation;
-    await delay(1000);
-    try {
-      const result = await graphql({
-        schema,
-        source: print(query),
-        variableValues: variables,
-        operationName,
-      });
-      observer.next(result);
-      observer.complete();
-    } catch (err) {
-      observer.error(err);
-    }
-  });
-});
-
-const CACHE_QUERY = gql`
-  query Person {
-    person {
-      id
-      clientAge
-    }
-  }
-`;
-
-const link = from([terminatingLink]);
-
-const cache = new InMemoryCache();
-
-/*** APP ***/
-import React from "react";
-import { createRoot } from "react-dom/client";
 import {
   ApolloClient,
+  ApolloLink,
   ApolloProvider,
-  InMemoryCache,
+  from,
   gql,
-  useQuery,
+  InMemoryCache,
+  RequestHandler,
   useMutation,
+  useQuery,
 } from "@apollo/client";
+import { terminatingLink } from "./gql-backend";
+
+let count = 0;
+const loggingLink: RequestHandler = (operation, forward) => {
+  const nextCount = count + 1;
+  count++;
+  console.log(`Operation "${operation.operationName}" #${nextCount} sent`);
+
+  return forward(operation).map((result) => {
+    console.log(
+      `Operation "${operation.operationName}" #${nextCount} completed`
+    );
+    return result;
+  });
+};
+
+const link = from([loggingLink, terminatingLink]);
+const cache = new InMemoryCache();
+const client = new ApolloClient({
+  cache,
+  link,
+});
 
 const PERSON = gql`
   query Person {
@@ -155,11 +89,6 @@ function App() {
     </main>
   );
 }
-
-const client = new ApolloClient({
-  cache,
-  link,
-});
 
 export default () => (
   <ApolloProvider client={client}>
